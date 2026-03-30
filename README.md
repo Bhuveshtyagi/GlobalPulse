@@ -5,7 +5,7 @@
 
 GlobalPulse is a high-fidelity, AI-driven intelligence engine. It continuously aggregates breaking news from 190+ countries, executing automated geopolitical summaries, and visually plotting global incidents onto an interactive 3D command center.
 
-![GlobalPulse](public/og-image.png)
+![GlobalPulse](public/demo-image.png)
 
 ## 🚀 Key Features
 
