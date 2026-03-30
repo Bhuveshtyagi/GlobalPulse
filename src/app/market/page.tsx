@@ -4,18 +4,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "@/components/Navbar";
 import MarketTicker from "@/components/MarketTicker";
 import Footer from "@/components/Footer";
-import dynamic from "next/dynamic";
 import { useEffect, useState, useCallback } from "react";
 
-// Lazy-load the chart (WebGL/canvas — client only)
-const LightweightChart = dynamic(() => import("@/components/LightweightChart"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex items-center justify-center h-full w-full">
-      <div className="w-6 h-6 border-2 border-accent/20 border-t-accent rounded-full animate-spin" />
-    </div>
-  ),
-});
+
+import StooqChart from "@/components/LightweightChart";
 
 const MARKET_SYMBOLS = [
   { name: "NIFTY 50", symbol: "NSE:NIFTY" },
@@ -146,7 +138,7 @@ export default function MarketPage() {
                 <p className="font-mono text-[9px] tracking-widest uppercase opacity-40 mb-2">
                   {selectedSymbol.name} — 90-Day Close
                 </p>
-                <LightweightChart symbol={selectedSymbol.symbol} height={370} />
+                <StooqChart symbol={selectedSymbol.symbol} height={370} />
               </motion.div>
             </AnimatePresence>
 
@@ -162,7 +154,7 @@ export default function MarketPage() {
                 >
                   <p className="font-mono text-[9px] tracking-widest uppercase opacity-40 mb-1">{idx.name}</p>
                   <div className="h-20 w-full pointer-events-none">
-                    <LightweightChart symbol={idx.symbol} height={80} mini />
+                    <StooqChart symbol={idx.symbol} height={80} mini />
                   </div>
                 </button>
               ))}
