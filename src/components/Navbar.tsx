@@ -93,7 +93,6 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: "Feed" },
     { href: "/market", label: "Market" },
-    { href: "/globe", label: "Globe" },
   ];
 
   return (
