@@ -62,11 +62,11 @@ export default async function GlobePage() {
   return (
     <>
       <Navbar />
-      <main className="pt-[104px] min-h-screen bg-black overflow-hidden relative">
+      <main className="pt-[104px] min-h-screen bg-bone dark:bg-[#0a0a0b] text-ink dark:text-bone overflow-hidden relative transition-colors duration-500">
         <InteractiveGlobe news={mappedNews} />
         
         {/* Vignette effect for dramatic premium look */}
-        <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
+        <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_150px_rgba(0,0,0,0.15)] dark:shadow-[inset_0_0_150px_rgba(0,0,0,0.9)] transition-shadow duration-500" />
       </main>
     </>
   );

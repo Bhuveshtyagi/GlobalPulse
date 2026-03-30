@@ -3,13 +3,14 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { Search, Loader2, Sparkles, X, Activity } from "lucide-react";
+import { useTheme } from "next-themes";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
   ssr: false,
   loading: () => (
-    <div className="w-full h-[calc(100vh-104px)] flex flex-col items-center justify-center bg-black">
+    <div className="w-full h-[calc(100vh-104px)] flex flex-col items-center justify-center bg-bone dark:bg-black transition-colors duration-500">
       <div className="w-12 h-12 border-2 border-t-accent rounded-full animate-spin mb-4" />
-      <span className="text-white animate-pulse font-mono text-xs tracking-[0.3em]">ESTABLISHING SATELLITE LINK...</span>
+      <span className="text-ink dark:text-white animate-pulse font-mono text-xs tracking-[0.3em]">ESTABLISHING SATELLITE LINK...</span>
     </div>
   )
 });
@@ -22,13 +23,10 @@ interface NewsItem {
   lng: number;
 }
 
-// Convert ISO A2 country code to emoji flag
-function getFlagEmoji(countryCode: string) {
-  if (!countryCode || countryCode === '-99') return '🌐';
-  return countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
-}
-
 export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
+
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [mounted, setMounted] = useState(false);
@@ -144,30 +142,34 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
       
       {/* HUD Info Overlay */}
       <div className="absolute top-4 left-4 z-10 pointer-events-none transition-opacity duration-500">
-        <h2 className="text-xl font-mono text-white tracking-widest uppercase flex items-center gap-2 drop-shadow-lg">
+        <h2 className="text-xl font-mono text-ink dark:text-white tracking-widest uppercase flex items-center gap-2 drop-shadow-lg">
           <Activity className="w-5 h-5 text-accent" />
           Global Surveillance
         </h2>
-        <p className="text-xs font-mono text-green-400 mt-1 max-w-sm drop-shadow-md bg-black/40 p-2 rounded backdrop-blur-sm border border-green-500/20">
+        <p className="text-xs font-mono text-accent mt-1 max-w-sm drop-shadow-md bg-white/60 dark:bg-black/40 p-2 rounded backdrop-blur-sm border border-accent/20">
           Tracking {points.length} active incidents dynamically mapped. 
-          <br/><span className="text-white/70">Hover over territories for names, and click to extract localized regional intelligence.</span>
+          <br/><span className="text-ink/80 dark:text-white/70">Hover over territories for names, and click to extract localized regional intelligence.</span>
         </p>
       </div>
 
       {/* Slide-out Regional Intelligence Side Panel */}
       <div 
-        className={`absolute top-0 right-0 w-full md:w-[450px] h-[calc(100vh-104px)] bg-black/85 backdrop-blur-xl border-l border-bone/10 z-20 flex flex-col transform transition-transform duration-500 ease-out shadow-2xl ${
+        className={`absolute top-0 right-0 w-full md:w-[450px] h-[calc(100vh-104px)] bg-white/95 dark:bg-black/85 backdrop-blur-xl border-l border-ink/10 dark:border-bone/10 z-20 flex flex-col transform transition-transform duration-500 ease-out shadow-2xl ${
           selectedCountry ? "translate-x-0" : "translate-x-full"
         }`}
       >
         {selectedCountry && (
           <>
             {/* Panel Header */}
-            <div className="p-6 border-b border-bone/10 flex items-center justify-between bg-white/[0.02]">
+            <div className="p-6 border-b border-ink/10 dark:border-bone/10 flex items-center justify-between bg-ink/[0.02] dark:bg-white/[0.02]">
               <div className="flex items-center gap-4">
-                <span className="text-4xl drop-shadow-lg">{getFlagEmoji(selectedCountry.properties.ISO_A2)}</span>
+                {selectedCountry.properties.ISO_A2 && selectedCountry.properties.ISO_A2 !== "-99" ? (
+                  <img src={`https://flagcdn.com/${selectedCountry.properties.ISO_A2.toLowerCase()}.svg`} alt="flag" className="w-12 h-auto rounded shadow-sm" />
+                ) : (
+                  <span className="text-4xl drop-shadow-lg">🌐</span>
+                )}
                 <div>
-                  <h3 className="text-xl font-bold tracking-wider text-bone uppercase line-clamp-1">
+                  <h3 className="text-xl font-bold tracking-wider text-ink dark:text-bone uppercase line-clamp-1">
                     {selectedCountry.properties.ADMIN}
                   </h3>
                   <p className="text-[10px] font-mono text-accent uppercase tracking-widest mt-1">
@@ -175,7 +177,7 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
                   </p>
                 </div>
               </div>
-              <button onClick={closePanel} className="p-2 bg-bone/5 hover:bg-accent/20 rounded-full text-bone/60 hover:text-accent transition-all">
+              <button onClick={closePanel} className="p-2 bg-ink/5 dark:bg-bone/5 hover:bg-accent/20 rounded-full text-ink/60 dark:text-bone/60 hover:text-accent transition-all">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -190,13 +192,13 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
                   <div className="absolute -top-10 -right-10 w-32 h-32 bg-accent/20 blur-3xl rounded-full" />
                   
                   <div className="relative z-10">
-                    <p className="text-xs text-bone/70 mb-4 font-mono">Execute AI synthesis on all collected regional raw data.</p>
+                    <p className="text-xs text-ink/70 dark:text-bone/70 mb-4 font-mono">Execute AI synthesis on all collected regional raw data.</p>
                     
                     {!summary ? (
                       <button 
                         onClick={handleSummarize}
                         disabled={summaryLoading}
-                        className="w-full py-3 px-4 bg-accent hover:bg-accent/80 text-black font-bold uppercase tracking-[0.2em] text-xs rounded transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,51,102,0.3)] hover:shadow-[0_0_25px_rgba(255,51,102,0.6)] disabled:bg-bone/20 disabled:text-bone/40 disabled:shadow-none"
+                        className="w-full py-3 px-4 bg-accent hover:bg-accent/80 text-white dark:text-black font-bold uppercase tracking-[0.2em] text-xs rounded transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.3)] hover:shadow-[0_0_25px_rgba(59,130,246,0.6)] disabled:bg-ink/10 dark:disabled:bg-bone/20 disabled:text-ink/40 dark:disabled:text-bone/40 disabled:shadow-none"
                       >
                         {summaryLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
                         {summaryLoading ? "ANALYZING REPORTS..." : "Generate AI Summary"}
@@ -207,7 +209,7 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
                           <Sparkles className="w-4 h-4 text-accent" />
                           <span className="text-[10px] font-mono text-accent uppercase tracking-widest">Executive Briefing</span>
                         </div>
-                        <p className="text-sm text-bone/90 leading-relaxed font-serif bg-black/30 p-4 rounded border border-bone/5 shadow-inner">
+                        <p className="text-sm text-ink/90 dark:text-bone/90 leading-relaxed font-serif bg-white/50 dark:bg-black/30 p-4 rounded border border-ink/5 dark:border-bone/5 shadow-inner">
                           {summary}
                         </p>
                       </div>
@@ -218,29 +220,29 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
 
               {/* News Feed state */}
               {newsLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 text-bone/60">
+                <div className="flex flex-col items-center justify-center py-20 text-ink/60 dark:text-bone/60">
                   <Loader2 className="w-8 h-8 animate-spin mb-4 text-accent" />
                   <p className="font-mono text-[10px] tracking-[0.3em] uppercase">INTERCEPTING SIGNALS...</p>
                 </div>
               ) : countryNews.length === 0 ? (
-                <div className="text-center py-12 bg-bone/[0.02] rounded border border-bone/10">
-                  <Search className="w-8 h-8 mx-auto mb-3 text-bone/30" />
-                  <p className="text-sm text-bone/50 tracking-wide">No recent classified incidents detected in this sector.</p>
+                <div className="text-center py-12 bg-ink/[0.02] dark:bg-bone/[0.02] rounded border border-ink/10 dark:border-bone/10">
+                  <Search className="w-8 h-8 mx-auto mb-3 text-ink/30 dark:text-bone/30" />
+                  <p className="text-sm text-ink/50 dark:text-bone/50 tracking-wide">No recent classified incidents detected in this sector.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                    <h4 className="text-[10px] font-mono tracking-widest text-bone/50 uppercase">Raw Intercepts ({countryNews.length})</h4>
+                    <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                    <h4 className="text-[10px] font-mono tracking-widest text-ink/50 dark:text-bone/50 uppercase">Raw Intercepts ({countryNews.length})</h4>
                   </div>
                   
                   {countryNews.map((article: any, idx: number) => (
                     <a key={idx} href={article.link || article.url} target="_blank" rel="noopener noreferrer" className="block group">
-                      <div className="p-4 rounded border border-bone/10 bg-black/40 hover:border-accent/40 hover:bg-accent/5 transition-all shadow-sm">
-                        <h5 className="text-sm font-semibold text-bone group-hover:text-accent mb-2 line-clamp-3 leading-snug">{article.title}</h5>
-                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-bone/10">
+                      <div className="p-4 rounded border border-ink/10 dark:border-bone/10 bg-white/40 dark:bg-black/40 hover:border-accent/40 hover:bg-accent/5 transition-all shadow-sm">
+                        <h5 className="text-sm font-semibold text-ink dark:text-bone group-hover:text-accent mb-2 line-clamp-3 leading-snug">{article.title}</h5>
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-ink/10 dark:border-bone/10">
                           <span className="text-[9px] uppercase font-bold text-accent px-2 py-0.5 rounded bg-accent/10">{article.source || "Intel Node"}</span>
-                          <span className="text-[9px] text-bone/40 font-mono">
+                          <span className="text-[9px] text-ink/40 dark:text-bone/40 font-mono">
                             {new Date(article.time || article.timestamp).toLocaleDateString()}
                           </span>
                         </div>
@@ -258,36 +260,43 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
         ref={globeRef}
         width={dimensions.width}
         height={dimensions.height}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-dark.jpg"
+        globeImageUrl={isDark ? "//unpkg.com/three-globe/example/img/earth-dark.jpg" : "//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"}
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
+        backgroundImageUrl={isDark ? "//unpkg.com/three-globe/example/img/night-sky.png" : undefined}
+        backgroundColor="rgba(0,0,0,0)"
         
         // Polygons (Countries)
         polygonsData={countriesData}
         polygonAltitude={d => d === hoverD ? 0.04 : 0.01}
-        // Red glowing highlight when hovered, almost invisible lines when not
-        polygonCapColor={d => d === hoverD ? 'rgba(255, 51, 102, 0.4)' : 'rgba(255, 255, 255, 0.01)'}
-        polygonSideColor={() => 'rgba(0, 0, 0, 0.1)'}
-        polygonStrokeColor={() => 'rgba(255, 255, 255, 0.08)'}
+        // Blue glowing highlight when hovered, almost invisible lines when not
+        polygonCapColor={d => d === hoverD ? 'rgba(59, 130, 246, 0.4)' : (isDark ? 'rgba(255, 255, 255, 0.01)' : 'rgba(0, 0, 0, 0.02)')}
+        polygonSideColor={() => isDark ? 'rgba(0, 0, 0, 0.1)' : 'rgba(255, 255, 255, 0.1)'}
+        polygonStrokeColor={() => isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)'}
         onPolygonHover={setHoverD}
         onPolygonClick={handlePolygonClick}
         
         // HTML Tooltip for Countries
-        polygonLabel={(d: any) => `
-          <div style="background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,51,102,0.4); border-radius: 6px; padding: 8px 14px; color: white; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <span style="font-size: 20px;">${getFlagEmoji(d.properties.ISO_A2)}</span>
-              <strong style="text-transform: uppercase; letter-spacing: 1px; font-size: 14px;">${d.properties.ADMIN}</strong>
+        polygonLabel={(d: any) => {
+          const iso = (d.properties.ISO_A2 || "").toLowerCase();
+          const flagUrl = iso && iso !== "-99" ? `https://flagcdn.com/${iso}.svg` : "";
+          const flagHtml = flagUrl ? `<img src="${flagUrl}" alt="flag" style="width: 24px; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.2);" />` : '🌐';
+          
+          return `
+            <div style="background: ${isDark ? 'rgba(0,0,0,0.85)' : 'rgba(255,255,255,0.85)'}; backdrop-filter: blur(8px); border: 1px solid rgba(59,130,246,0.4); border-radius: 6px; padding: 8px 14px; color: ${isDark ? 'white' : 'black'}; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 4px 20px rgba(0,0,0,0.2);">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                ${flagHtml}
+                <strong style="text-transform: uppercase; letter-spacing: 1px; font-size: 14px;">${d.properties.ADMIN}</strong>
+              </div>
+              <div style="font-size: 9px; color: #3b82f6; margin-top: 6px; letter-spacing: 2px; font-family: monospace;">[ CLICK TO EXTRACT INTEL ]</div>
             </div>
-            <div style="font-size: 9px; color: #ff3366; margin-top: 6px; letter-spacing: 2px; font-family: monospace;">[ CLICK TO EXTRACT INTEL ]</div>
-          </div>
-        `}
+          `;
+        }}
         
         // Data points (Global breaking news nodes)
         pointsData={points}
         pointLat="lat"
         pointLng="lng"
-        pointColor={() => "#ff3366"}
+        pointColor={() => "#3b82f6"}
         pointAltitude={0.05}
         pointRadius={0.3}
         pointsMerge={false}
@@ -296,7 +305,7 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
         ringsData={points}
         ringLat="lat"
         ringLng="lng"
-        ringColor={() => "rgba(255, 51, 102, 0.8)"}
+        ringColor={() => "rgba(59, 130, 246, 0.8)"}
         ringMaxRadius={4}
         ringPropagationSpeed={2}
         ringRepeatPeriod={2000}
