@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 
 export default function Footer() {
   const [email, setEmail] = useState("");
@@ -22,9 +23,9 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-16 mb-16">
           {/* Brand */}
           <div className="md:col-span-1">
-            <a href="/" className="font-serif text-3xl tracking-tighter hover:text-accent transition-colors">
+            <Link href="/" className="font-serif text-3xl tracking-tighter hover:text-accent transition-colors">
               Global<span className="italic opacity-40">Pulse</span>
-            </a>
+            </Link>
             <p className="font-sans text-xs leading-relaxed opacity-50 mt-4 max-w-xs">
               Real-time intelligence curated from 300+ global sources. Signal over noise.
             </p>
@@ -45,7 +46,7 @@ export default function Footer() {
                 { href: "/about", label: "About Us" },
               ].map(link => (
                 <li key={link.href}>
-                  <a href={link.href} className="font-sans text-sm opacity-60 hover:opacity-100 hover:text-accent transition-all">{link.label}</a>
+                  <Link href={link.href} className="font-sans text-sm opacity-60 hover:opacity-100 hover:text-accent transition-all">{link.label}</Link>
                 </li>
               ))}
             </ul>
@@ -100,9 +101,9 @@ export default function Footer() {
               { label: "Terms of Service", href: "/terms" },
               { label: "Disclaimer", href: "/disclaimer" }
             ].map(link => (
-              <a key={link.label} href={link.href} className="font-mono text-[9px] tracking-widest uppercase opacity-30 hover:opacity-100 hover:text-accent transition-all">
+              <Link key={link.label} href={link.href} className="font-mono text-[9px] tracking-widest uppercase opacity-30 hover:opacity-100 hover:text-accent transition-all">
                 {link.label}
-              </a>
+              </Link>
             ))}
           </div>
         </div>

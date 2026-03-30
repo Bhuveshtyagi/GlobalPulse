@@ -58,7 +58,6 @@ export default function NewsCard({ title, description, source, time, image, onCl
         {/* Image — authentic article photo (if provided) */}
         {hasImage && (
           <div className="relative aspect-[4/3] overflow-hidden rounded-sm bg-ink/5 dark:bg-bone/5 flex-shrink-0">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <motion.img
               variants={{ initial: { scale: 1.05 }, hover: { scale: 1 } }}
               src={image!}

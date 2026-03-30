@@ -70,7 +70,7 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
       controls.autoRotateSpeed = 0.5;
       controls.enableZoom = true;
     }
-  }, [mounted, globeRef.current]);
+  }, [mounted]);
 
   const points = useMemo(() => news, [news]);
 

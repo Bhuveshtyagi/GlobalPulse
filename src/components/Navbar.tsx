@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Mail, User, X, Search, LogOut, ChevronDown, Menu, Sun, Moon } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useTheme } from "next-themes";
 
 interface AuthUser {
@@ -100,17 +101,17 @@ export default function Navbar() {
     <>
       <nav className="fixed top-10 left-0 w-full h-16 bg-bone/95 dark:bg-[#0a0a0b]/95 backdrop-blur-md z-50 border-b border-ink/10 dark:border-bone/10 px-4 md:px-6 flex items-center justify-between gap-4">
         {/* Logo */}
-        <a href="/" className="font-serif text-xl md:text-2xl tracking-tighter hover:text-accent transition-colors text-ink dark:text-bone flex-shrink-0">
+        <Link href="/" className="font-serif text-xl md:text-2xl tracking-tighter hover:text-accent transition-colors text-ink dark:text-bone flex-shrink-0">
           Global<span className="italic opacity-50">Pulse</span>
-        </a>
+        </Link>
 
         {/* Desktop nav links */}
         <div className="hidden md:flex items-center gap-6 border-l border-ink/10 dark:border-bone/10 pl-6 h-8">
           {navLinks.map(link => (
-            <a key={link.href} href={link.href}
+            <Link key={link.href} href={link.href}
               className={`font-mono text-[10px] tracking-widest uppercase transition-colors ${pathname === link.href ? "text-accent" : "text-ink/40 dark:text-bone/40 hover:text-accent"}`}>
               {link.label}
-            </a>
+            </Link>
           ))}
           
           {/* Pages Dropdown */}
