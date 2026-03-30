@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GlobalPulse 🌍
+**Real-Time Global Intelligence & AI Analytics Platform**
 
-## Getting Started
+GlobalPulse is a high-fidelity, AI-driven intelligence engine. It continuously aggregates breaking news from 190+ countries, executing automated geopolitical summaries, and visually plotting global incidents onto an interactive 3D command center.
 
-First, run the development server:
+![GlobalPulse](/Users/bhuvesh/.gemini/antigravity/brain/6ff92266-2dff-4101-8a45-86ce5e9705c5/live_debug_after_env_1774844747635.webp) <!-- Placeholder for demo image -->
+
+## 🚀 Key Features
+
+- **Interactive 3D Command Center**: A WebGL-powered 3D globe rendering accurately mapped country polygons. Users can hover for localized data and click to extract instant regional intelligence.
+- **AI-Powered Synthesis**: Integration with high-speed LLMs (via PicoAPI) allowing single-click executive summaries of ongoing geopolitical or economic events in any given region.
+- **Zero-Cost Background Pipeline**: A custom user-triggered, smart-throttled "cron" system that updates intelligence feeds globally without requiring paid serverless execution tiers.
+- **Financial Market Ticker**: Live streaming data tracking major global indices and commodities.
+- **VIP "Glass-morphic" Aesthetics**: A premium, dark-mode terminal UI built for professionals, utilizing modern design tokens, blur-filters, and tech-focused typography.
+
+## 🛠️ Technology Stack
+
+- **Framework**: [Next.js 16 (App Router)](https://nextjs.org) + React 19
+- **Database**: [Supabase](https://supabase.com) (PostgreSQL)
+- **3D Visualization**: [`react-globe.gl`](https://globe.gl/) (Three.js WebGL)
+- **Styling**: TailwindCSS, Lucide-React
+- **Intelligence Providers**: NewsData.io (Aggregation), PicoAPI (LLM Summarization)
+
+## 💡 Where Can This Tech Be Implemented?
+
+The architecture and design patterns utilized in GlobalPulse are highly adaptable for several enterprise domains:
+1. **Financial Intelligence Dashboards**: Tracking global geopolitical events to estimate macro-economic risk and supply chain disruptions.
+2. **OSINT (Open Source Intelligence) Platforms**: Providing a centralized, rapid-response visualizer for analysts monitoring global conflicts or global health incidents.
+3. **Executive Corporate Dashboards**: Globalized companies tracking regional sentiment where they have heavy infrastructure or employee footprints.
+4. **Educational Tools**: Visualizing history, political science, and global studies in an engaging, interactive format.
+
+## ⚙️ Local Development Requirements
+
+To run this platform locally, you will need the following API Keys set in your `.env.local` file:
+- `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY`
+- `NEWSDATA_API_KEY`
+- `PICO_API_KEY`
+- `CRON_SECRET_KEY` / `NEXT_PUBLIC_CRON_SECRET_KEY`
 
 ```bash
+# Clone and install dependencies
+git clone https://github.com/Bhuveshtyagi/GlobalPulse
+cd news-app
+npm install --legacy-peer-deps
+
+# Run the local intelligence server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## ⚠️ Legal Disclaimer
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Content Ownership**: The news headlines, summaries, photographic images, and financial market data displayed on this application are aggressively aggregated from public third-party sources (such as NewsData.io, Google News RSS, and Yahoo Finance) via automated scraping and APIs. 
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**We do not own, write, endorse, or verify the accuracy of the aggregated content.** All intellectual property, trademarks, and copyrights belong strictly to their respective original publishers and authors. This platform is constructed purely as a technical demonstration of AI assimilation and 3D data visualization.
