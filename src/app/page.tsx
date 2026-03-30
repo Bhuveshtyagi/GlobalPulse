@@ -15,6 +15,28 @@ function HomeContent() {
   const router = useRouter();
   const urlSearch = searchParams.get("search") || "";
   const [category, setCategory] = useState("For You");
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    const triggerCron = async () => {
+      const secret = process.env.NEXT_PUBLIC_CRON_SECRET_KEY;
+      if (!secret) return;
+
+      try {
+        const res = await fetch(`/api/cron?secret=${secret}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === "success") {
+            console.log(`GlobalPulse: Synchronized ${data.articles_processed} new intelligence nodes.`);
+          }
+        }
+      } catch (err) {
+        // Silent fail for background sync
+      }
+    };
+
+    triggerCron();
+  }, []);
 
   const clearSearch = () => {
     router.push("/");

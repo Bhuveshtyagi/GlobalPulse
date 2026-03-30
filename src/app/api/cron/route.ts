@@ -4,14 +4,40 @@ export const maxDuration = 60; // Allow Vercel functions to run up to 60s for ba
 export const dynamic = 'force-dynamic';
 
 export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const secret = searchParams.get('secret');
   const authHeader = req.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return new Response('Unauthorized Cron Attempt', { status: 401 });
+  const cronSecret = process.env.CRON_SECRET_KEY || process.env.CRON_SECRET;
+
+  // 1. Enhanced Security: Support both header and query param
+  const isAuthorized = (cronSecret && (
+    authHeader === `Bearer ${cronSecret}` || 
+    secret === cronSecret
+  ));
+
+  if (!isAuthorized) {
+    return new Response('Unauthorized', { status: 401 });
   }
 
-  console.log("CRON JOB INIT: Searching for unanalyzed global data...");
-
   try {
+    // 2. Smart Auto-Fetch: Check last_fetch_at in Supabase
+    const { data: settings } = await supabase
+      .from('system_settings')
+      .select('value')
+      .eq('key', 'last_fetch_at')
+      .single();
+
+    const lastFetch = settings?.value ? new Date(settings.value as string) : new Date(0);
+    const now = new Date();
+    const minutesSinceLastFetch = (now.getTime() - lastFetch.getTime()) / (1000 * 60);
+
+    if (minutesSinceLastFetch < 10) {
+      console.log(`CRON SKIP: Last fetch was ${Math.round(minutesSinceLastFetch)}m ago. Minimum 10m required.`);
+      return Response.json({ status: "skipped", reason: "Throttled (10m rule)", minutes_remaining: Math.round(10 - minutesSinceLastFetch) });
+    }
+
+    console.log("CRON JOB INIT: Fetching fresh global intelligence...");
+
     const rawArticles: any[] = [];
     const NEWSDATA_API_KEY = process.env.NEWSDATA_API_KEY;
 
@@ -33,60 +59,52 @@ export async function GET(req: Request) {
       }
     }
 
-    if (rawArticles.length === 0) return Response.json({ status: "No articles fetched from provider." });
+    if (rawArticles.length > 0) {
+      const unique = Array.from(new Map(rawArticles.filter(a => a.url).map(a => [a.url, a])).values());
+      const urls = unique.map(a => a.url);
+      const { data: existing } = await supabase.from('news').select('url').in('url', urls).not('ai_headline', 'is', null);
+      const existingUrls = new Set(existing?.map(e => e.url) || []);
+      const toProcess = unique.filter(a => !existingUrls.has(a.url)).slice(0, 5);
 
-    const unique = Array.from(new Map(rawArticles.filter(a => a.url).map(a => [a.url, a])).values());
-    const urls = unique.map(a => a.url);
-    const { data: existing } = await supabase.from('news').select('url').in('url', urls).not('ai_headline', 'is', null);
-    const existingUrls = new Set(existing?.map(e => e.url) || []);
-    const toProcess = unique.filter(a => !existingUrls.has(a.url)).slice(0, 5);
+      console.log(`CRON STATUS: Processing ${toProcess.length} new articles.`);
+      const processed = [];
 
-    console.log(`CRON STATUS: Found ${toProcess.length} raw articles needing intelligence extraction.`);
-    const processed = [];
+      for (const article of toProcess) {
+        const prompt = `Analyze this news article:\nTitle: ${article.title}\nContent: ${article.description}\n\nProvide a strict JSON response with exactly three keys:\n1. "ai_headline": A shorter, punchier rewritten headline (under 60 chars).\n2. "summary": A strict 2-line summary of the key facts.\n3. "why_it_matters": A 1-2 sentence explanation of the broader geopolitical or financial consequences.\n\nOnly output valid JSON. No markdown ticks.`;
 
-    for (const article of toProcess) {
-      const prompt = `Analyze this news article:\nTitle: ${article.title}\nContent: ${article.description}\n\nProvide a strict JSON response with exactly three keys:\n1. "ai_headline": A shorter, punchier rewritten headline (under 60 chars).\n2. "summary": A strict 2-line summary of the key facts.\n3. "why_it_matters": A 1-2 sentence explanation of the broader geopolitical or financial consequences.\n\nOnly output valid JSON. No markdown ticks.`;
-
-      try {
-        const response = await fetch(`https://backend.buildpicoapps.com/aero/run/llm-api?pk=${process.env.PICO_API_KEY}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
-        });
-        const data = await response.json();
-        if (data.status !== 'success') throw new Error("API Failure");
-
-        const text = data.text;
-        const cleanJson = text.replace(/```json|```/g, '').trim();
-        const parsed = JSON.parse(cleanJson);
-        
-        processed.push({
-          ...article,
-          ai_headline: parsed.ai_headline || article.title,
-          summary: parsed.summary || article.description,
-          why_it_matters: parsed.why_it_matters || "Geopolitical impact unclear."
-        });
-        
-        console.log(`CRON SUCCESS: Processed intelligence payload for -> ${article.title}`);
-      } catch (err) {
-        console.error("CRON FAIL: PicoApps pipeline broke on article:", article.title, err);
-        processed.push(article);
+        try {
+          const response = await fetch(`https://backend.buildpicoapps.com/aero/run/llm-api?pk=${process.env.PICO_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prompt })
+          });
+          const data = await response.json();
+          if (data.status === 'success') {
+            const cleanJson = data.text.replace(/```json|```/g, '').trim();
+            const parsed = JSON.parse(cleanJson);
+            processed.push({ ...article, ...parsed });
+          } else {
+            processed.push(article);
+          }
+        } catch (err) {
+          processed.push(article);
+        }
       }
+
+      if (processed.length > 0) {
+        await supabase.from('news').upsert(processed, { onConflict: 'url' });
+      }
+
+      // 3. Update last_fetch_at in Database
+      await supabase.from('system_settings').upsert({ key: 'last_fetch_at', value: now.toISOString() }, { onConflict: 'key' });
+
+      return Response.json({ status: "success", articles_processed: processed.length });
     }
 
-    if (processed.length > 0) {
-      const { error } = await supabase.from('news').upsert(processed, { onConflict: 'url' });
-      if (error) console.error("CRON DB ERROR:", error);
-    }
-
-    return Response.json({ 
-      status: "Pipeline Cycle Complete", 
-      processed_via_ai: processed.length, 
-      skipped_already_cached: unique.length - toProcess.length 
-    });
+    return Response.json({ status: "No new articles found." });
 
   } catch (error) {
-    console.error("Fatal Cron Job Collapse:", error);
+    console.error("CRON ERROR:", error);
     return Response.json({ error: "Failed to process cron cycle." }, { status: 500 });
   }
 }
