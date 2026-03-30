@@ -5,37 +5,25 @@ import Navbar from "@/components/Navbar";
 import MarketTicker from "@/components/MarketTicker";
 import Footer from "@/components/Footer";
 import { useEffect, useState, useCallback } from "react";
+import TradingViewChart from "@/components/TradingViewChart";
 
-const INDICES = [
-  { name: "NIFTY 50", value: 22453.15, change: "+182.40", pct: "+0.82%", trend: "up" },
-  { name: "SENSEX", value: 73921.30, change: "+541.20", pct: "+0.74%", trend: "up" },
-  { name: "NIFTY BANK", value: 47215.80, change: "-112.30", pct: "-0.24%", trend: "down" },
-  { name: "NIFTY IT", value: 35124.50, change: "+412.10", pct: "+1.19%", trend: "up" },
-  { name: "S&P 500", value: 5241.30, change: "+28.50", pct: "+0.55%", trend: "up" },
-  { name: "NASDAQ", value: 16742.39, change: "-45.10", pct: "-0.27%", trend: "down" },
+const MARKET_SYMBOLS = [
+  { name: "NIFTY 50", symbol: "NSE:NIFTY" },
+  { name: "SENSEX", symbol: "BSE:SENSEX" },
+  { name: "NIFTY BANK", symbol: "NSE:BANKNIFTY" },
+  { name: "NIFTY IT", symbol: "NSE:CNXIT" },
+  { name: "S&P 500", symbol: "SP:SPX" },
+  { name: "NASDAQ 100", symbol: "NASDAQ:NDX" },
 ];
 
 const TOP_MOVERS = [
-  { symbol: "RELIANCE", price: "₹2,982", change: "+1.2%" },
-  { symbol: "TATA MOTORS", price: "₹982", change: "+4.1%" },
-  { symbol: "HDFC BANK", price: "₹1,452", change: "-0.5%" },
-  { symbol: "INFY", price: "₹1,621", change: "+2.4%" },
-  { symbol: "ADANI ENT", price: "₹3,124", change: "-1.8%" },
-  { symbol: "WIPRO", price: "₹498", change: "+0.9%" },
+  { symbol: "RELIANCE", price: "Live", change: "NSE" },
+  { symbol: "TCS", price: "Live", change: "NSE" },
+  { symbol: "HDFCBANK", price: "Live", change: "NSE" },
+  { symbol: "INFY", price: "Live", change: "NSE" },
+  { symbol: "AAPL", price: "Live", change: "NASDAQ" },
+  { symbol: "NVDA", price: "Live", change: "NASDAQ" },
 ];
-
-// Generate a realistic-looking sparkline SVG path
-function buildSparklinePath(trend: "up" | "down", width = 400, height = 120): string {
-  const points: [number, number][] = [];
-  const n = 40;
-  let y = trend === "up" ? height * 0.7 : height * 0.3;
-  for (let i = 0; i < n; i++) {
-    y += (Math.random() - (trend === "up" ? 0.42 : 0.58)) * 12;
-    y = Math.max(8, Math.min(height - 8, y));
-    points.push([Math.round((i / (n - 1)) * width), Math.round(y)]);
-  }
-  return points.map((p, i) => `${i === 0 ? "M" : "L"} ${p[0]} ${p[1]}`).join(" ");
-}
 
 interface MarketArticle {
   title: string;
@@ -47,36 +35,9 @@ interface MarketArticle {
 }
 
 export default function MarketPage() {
-  const [selectedIndex, setSelectedIndex] = useState(INDICES[0]);
-  const [sparklinePaths, setSparklinePaths] = useState<Record<string, string>>({});
+  const [selectedSymbol, setSelectedSymbol] = useState(MARKET_SYMBOLS[0]);
   const [articles, setArticles] = useState<MarketArticle[]>([]);
   const [loadingNews, setLoadingNews] = useState(true);
-  const [liveValues, setLiveValues] = useState<Record<string, number>>({});
-
-  // Build sparklines on mount (client only — avoids hydration mismatch)
-  useEffect(() => {
-    const paths: Record<string, string> = {};
-    INDICES.forEach(idx => { paths[idx.name] = buildSparklinePath(idx.trend as "up" | "down"); });
-    setSparklinePaths(paths);
-    const init: Record<string, number> = {};
-    INDICES.forEach(idx => { init[idx.name] = idx.value; });
-    setLiveValues(init);
-  }, []);
-
-  // Simulate live price fluctuation every 3 seconds
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setLiveValues(prev => {
-        const next = { ...prev };
-        INDICES.forEach(idx => {
-          const delta = (Math.random() - 0.5) * (idx.value * 0.0008);
-          next[idx.name] = +(prev[idx.name] + delta).toFixed(2);
-        });
-        return next;
-      });
-    }, 3000);
-    return () => clearInterval(timer);
-  }, []);
 
   // Fetch business/market news
   const fetchMarketNews = useCallback(async () => {
@@ -91,24 +52,24 @@ export default function MarketPage() {
 
   useEffect(() => { fetchMarketNews(); }, [fetchMarketNews]);
 
-  const selectedPath = sparklinePaths[selectedIndex.name] || "";
-
   return (
     <main className="min-h-screen bg-bone dark:bg-[#0a0a0b] text-ink dark:text-bone transition-colors duration-500">
       <MarketTicker />
       <Navbar />
+
+      {/* TradingView Script is managed inside TradingViewChart wrapper */}
 
       <div className="max-w-7xl mx-auto px-4 md:px-8 pt-36 pb-20">
         {/* Header */}
         <header className="mb-16">
           <div className="flex items-center gap-4 mb-4">
             <span className="w-12 h-[1px] bg-accent" />
-            <span className="font-mono text-[10px] tracking-[0.4em] uppercase text-accent font-bold">Live Market Intelligence</span>
+            <span className="font-mono text-[10px] tracking-[0.4em] uppercase text-accent font-bold">Verified Market Intelligence</span>
           </div>
           <h1 className="font-serif text-6xl md:text-8xl tracking-tighter">
             Market <span className="italic text-ink/20 dark:text-bone/20">Pulse</span>
           </h1>
-          <p className="font-sans text-sm opacity-50 mt-4">Real-time indices, movers, and business intelligence.</p>
+          <p className="font-sans text-sm opacity-50 mt-4">Real-time indices powered by TradingView.</p>
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-12">
@@ -116,12 +77,12 @@ export default function MarketPage() {
           <section className="space-y-12">
             {/* Index selector */}
             <div className="flex flex-wrap gap-2">
-              {INDICES.map(idx => (
+              {MARKET_SYMBOLS.map(idx => (
                 <button
-                  key={idx.name}
-                  onClick={() => setSelectedIndex(idx)}
+                  key={idx.symbol}
+                  onClick={() => setSelectedSymbol(idx)}
                   className={`px-4 py-2 font-mono text-[9px] tracking-widest uppercase border transition-all ${
-                    selectedIndex.name === idx.name
+                    selectedSymbol.symbol === idx.symbol
                       ? "border-accent text-accent bg-accent/5"
                       : "border-ink/10 dark:border-bone/10 opacity-50 hover:opacity-100 hover:border-accent/30"
                   }`}
@@ -131,91 +92,31 @@ export default function MarketPage() {
               ))}
             </div>
 
-            {/* Live SVG Chart */}
+            {/* Live TradingView Main Chart */}
             <AnimatePresence mode="wait">
               <motion.div
-                key={selectedIndex.name}
+                key={selectedSymbol.symbol}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="border border-ink/10 dark:border-bone/10 bg-ink/2 dark:bg-bone/2 p-8 relative overflow-hidden"
+                className="border border-ink/10 dark:border-bone/10 bg-ink/2 dark:bg-bone/2 p-4 relative overflow-hidden h-[400px] w-full"
               >
-                {/* Grid lines */}
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none"
-                  style={{ backgroundImage: "linear-gradient(rgba(0,0,0,1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,1) 1px, transparent 1px)", backgroundSize: "40px 30px" }} />
-
-                <div className="flex items-start justify-between mb-6">
-                  <div>
-                    <p className="font-mono text-[10px] tracking-widest uppercase opacity-40 mb-1">{selectedIndex.name}</p>
-                    <div className="flex items-baseline gap-4">
-                      <motion.span
-                        key={liveValues[selectedIndex.name]}
-                        initial={{ opacity: 0.6 }}
-                        animate={{ opacity: 1 }}
-                        className="font-serif text-5xl tracking-tighter"
-                      >
-                        {liveValues[selectedIndex.name]?.toLocaleString("en-IN", { maximumFractionDigits: 2 }) ?? selectedIndex.value.toLocaleString()}
-                      </motion.span>
-                      <span className={`font-mono text-sm ${selectedIndex.trend === "up" ? "text-green-500" : "text-red-500"}`}>
-                        {selectedIndex.pct}
-                      </span>
-                    </div>
-                  </div>
-                  <div className={`px-3 py-1 font-mono text-[10px] ${selectedIndex.trend === "up" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}>
-                    {selectedIndex.trend === "up" ? "▲ Bullish" : "▼ Bearish"}
-                  </div>
-                </div>
-
-                {/* SVG Sparkline */}
-                <div className="h-40 w-full relative">
-                  {selectedPath && (
-                    <svg viewBox="0 0 400 120" preserveAspectRatio="none" className="w-full h-full">
-                      {/* gradient fill */}
-                      <defs>
-                        <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={selectedIndex.trend === "up" ? "#22c55e" : "#ef4444"} stopOpacity="0.2" />
-                          <stop offset="100%" stopColor={selectedIndex.trend === "up" ? "#22c55e" : "#ef4444"} stopOpacity="0" />
-                        </linearGradient>
-                      </defs>
-                      {/* fill area */}
-                      <path
-                        d={`${selectedPath} L 400 120 L 0 120 Z`}
-                        fill="url(#chartFill)"
-                      />
-                      {/* animated line */}
-                      <motion.path
-                        d={selectedPath}
-                        fill="none"
-                        stroke={selectedIndex.trend === "up" ? "#22c55e" : "#ef4444"}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        initial={{ pathLength: 0 }}
-                        animate={{ pathLength: 1 }}
-                        transition={{ duration: 1.5, ease: "easeOut" }}
-                      />
-                    </svg>
-                  )}
-                </div>
-
-                <div className="flex justify-between font-mono text-[9px] opacity-30 mt-2 tracking-widest">
-                  <span>09:15 AM</span><span>11:30 AM</span><span>01:00 PM</span><span>02:30 PM</span><span>03:30 PM</span>
-                </div>
+                <TradingViewChart symbol={selectedSymbol.symbol} timeFrame="1D" height={380} showTimeScale />
               </motion.div>
             </AnimatePresence>
 
-            {/* Indices grid */}
+            {/* Indices mini-charts grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-px bg-ink/5 dark:bg-bone/5 border border-ink/10 dark:border-bone/10">
-              {INDICES.map(idx => (
+              {MARKET_SYMBOLS.map(idx => (
                 <button
-                  key={idx.name}
-                  onClick={() => setSelectedIndex(idx)}
-                  className={`bg-bone dark:bg-[#0a0a0b] p-6 text-left hover:bg-accent/5 transition-colors group ${selectedIndex.name === idx.name ? "bg-accent/5" : ""}`}
+                  key={idx.symbol}
+                  onClick={() => setSelectedSymbol(idx)}
+                  className={`bg-bone dark:bg-[#0a0a0b] p-4 text-left hover:bg-accent/5 transition-colors group ${selectedSymbol.symbol === idx.symbol ? "bg-accent/5" : ""}`}
                 >
                   <p className="font-mono text-[9px] tracking-widest uppercase opacity-40 mb-2">{idx.name}</p>
-                  <p className="font-serif text-2xl tracking-tighter">
-                    {liveValues[idx.name]?.toLocaleString("en-IN", { maximumFractionDigits: 2 }) ?? idx.value.toLocaleString()}
-                  </p>
-                  <p className={`font-mono text-[9px] mt-1 ${idx.trend === "up" ? "text-green-500" : "text-red-500"}`}>{idx.pct}</p>
+                  <div className="h-24 w-full pointer-events-none">
+                  <TradingViewChart symbol={idx.symbol} timeFrame="1M" height={96} showTimeScale={false} />
+                  </div>
                 </button>
               ))}
             </div>
@@ -278,10 +179,10 @@ export default function MarketPage() {
 
           {/* Right Sidebar */}
           <aside className="space-y-8 lg:sticky lg:top-28 lg:self-start">
-            {/* Top Movers */}
+            {/* Top Movers (Fixed placeholders for TradingView) */}
             <div className="border border-ink/10 dark:border-bone/10 p-6">
               <h4 className="font-mono text-[10px] font-bold tracking-[0.3em] uppercase mb-6 pb-4 border-b border-ink/10 dark:border-bone/10 flex items-center justify-between">
-                Top Movers
+                Market Watchlist
                 <span className="text-accent text-[9px]">● Live</span>
               </h4>
               <div className="space-y-3">
@@ -297,7 +198,7 @@ export default function MarketPage() {
                       <div className="font-mono text-[11px] font-bold">{mover.symbol}</div>
                       <div className="font-mono text-[9px] opacity-40">{mover.price}</div>
                     </div>
-                    <div className={`font-mono text-[10px] font-bold ${mover.change.startsWith("+") ? "text-green-500" : "text-red-500"}`}>
+                    <div className="font-mono text-[10px] font-bold opacity-60">
                       {mover.change}
                     </div>
                   </motion.div>
@@ -313,7 +214,7 @@ export default function MarketPage() {
               </div>
               <h5 className="font-serif text-xl mb-3 italic">Neural Alpha</h5>
               <p className="font-sans text-[11px] leading-relaxed opacity-70 mb-6">
-                Our AI signals indicate a significant volatility surge in NIFTY IT within the next 48 hours based on cross-border sentiment analysis.
+                Our AI signals indicate a significant volatility surge in Global Tech within the next 48 hours based on cross-border sentiment analysis.
               </p>
               <button className="font-mono text-[9px] tracking-widest uppercase border border-white/20 dark:border-black/20 px-4 py-2 hover:bg-white hover:text-black dark:hover:bg-black dark:hover:text-white transition-colors w-full">
                 Unlock Insights
