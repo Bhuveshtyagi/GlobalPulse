@@ -1,6 +1,8 @@
 # GlobalPulse 🌍
 **Real-Time Global Intelligence & AI Analytics Platform**
 
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Running_on_Vercel-black?style=for-the-badge&logo=vercel)](https://global-pulse-tau.vercel.app/)
+
 GlobalPulse is a high-fidelity, AI-driven intelligence engine. It continuously aggregates breaking news from 190+ countries, executing automated geopolitical summaries, and visually plotting global incidents onto an interactive 3D command center.
 
 ![GlobalPulse](/Users/bhuvesh/.gemini/antigravity/brain/6ff92266-2dff-4101-8a45-86ce5e9705c5/live_debug_after_env_1774844747635.webp) <!-- Placeholder for demo image -->
