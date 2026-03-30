@@ -1,5 +1,6 @@
 import { supabaseServer } from "@/lib/supabase/server";
 import InteractiveGlobe from "@/components/InteractiveGlobe";
+import Navbar from "@/components/Navbar";
 
 const COUNTRY_COORDS: Record<string, [number, number]> = {
   "us": [37.0902, -95.7129],
@@ -59,11 +60,14 @@ export default async function GlobePage() {
   });
 
   return (
-    <main className="pt-[104px] min-h-screen bg-black overflow-hidden relative">
-      <InteractiveGlobe news={mappedNews} />
-      
-      {/* Vignette effect for dramatic premium look */}
-      <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
-    </main>
+    <>
+      <Navbar />
+      <main className="pt-[104px] min-h-screen bg-black overflow-hidden relative">
+        <InteractiveGlobe news={mappedNews} />
+        
+        {/* Vignette effect for dramatic premium look */}
+        <div className="absolute inset-0 pointer-events-none z-10 shadow-[inset_0_0_150px_rgba(0,0,0,0.9)]" />
+      </main>
+    </>
   );
 }

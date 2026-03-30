@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
+import { Search, Loader2, Sparkles, X, Activity } from "lucide-react";
 
 const Globe = dynamic(() => import("react-globe.gl"), {
   ssr: false,
@@ -21,49 +22,236 @@ interface NewsItem {
   lng: number;
 }
 
+// Convert ISO A2 country code to emoji flag
+function getFlagEmoji(countryCode: string) {
+  if (!countryCode || countryCode === '-99') return '🌐';
+  return countryCode.toUpperCase().replace(/./g, char => String.fromCodePoint(char.charCodeAt(0) + 127397));
+}
+
 export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
   const globeRef = useRef<any>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [mounted, setMounted] = useState(false);
+  
+  // Globe data state
+  const [countriesData, setCountriesData] = useState<any[]>([]);
+  const [hoverD, setHoverD] = useState<any>(null);
+  
+  // Current active country for the intelligence panel
+  const [selectedCountry, setSelectedCountry] = useState<any>(null);
+  
+  // Regional intelligence panel state
+  const [countryNews, setCountryNews] = useState<any[]>([]);
+  const [newsLoading, setNewsLoading] = useState(false);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setDimensions({
-      width: window.innerWidth,
-      height: window.innerHeight - 104 // Account for Top Bar
-    });
-    
-    const onResize = () => setDimensions({
-      width: window.innerWidth,
-      height: window.innerHeight - 104
-    });
-    
+    // Resize observer
+    setDimensions({ width: window.innerWidth, height: window.innerHeight - 104 });
+    const onResize = () => setDimensions({ width: window.innerWidth, height: window.innerHeight - 104 });
     window.addEventListener("resize", onResize);
+    
+    // Fetch GeoJSON boundaries
+    fetch('https://raw.githubusercontent.com/vasturiano/react-globe.gl/master/example/datasets/ne_110m_admin_0_countries.geojson')
+      .then(res => res.json())
+      .then(data => setCountriesData(data.features))
+      .catch(err => console.error("Failed to load map polygons:", err));
+      
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
   useEffect(() => {
+    // Setup initial globe controls
+    if (globeRef.current && mounted) {
+      const controls = globeRef.current.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 0.5;
+      controls.enableZoom = true;
+    }
+  }, [mounted, globeRef.current]);
+
+  const points = useMemo(() => news, [news]);
+
+  // Click handler for fetching regional intelligence
+  const handlePolygonClick = async (polygon: any) => {
+    if (!polygon) return;
+    
+    setSelectedCountry(polygon);
+    setSummary(null);
+    setCountryNews([]);
+    setNewsLoading(true);
+
+    // Stop auto-rotation when user is interacting with a specific region
+    if (globeRef.current) {
+      globeRef.current.controls().autoRotate = false;
+    }
+
+    const iso = (polygon.properties.ISO_A2 || "").toLowerCase();
+    if (!iso) {
+      setNewsLoading(false);
+      return;
+    }
+
+    try {
+      // Call backend route directly requesting news for that country
+      const res = await fetch(`/api/news?country=${iso}&category=top&limit=10`);
+      const data = await res.json();
+      setCountryNews(data.articles || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setNewsLoading(false);
+    }
+  };
+
+  // AI Summarize handler
+  const handleSummarize = async () => {
+    if (!countryNews.length || !selectedCountry) return;
+    setSummaryLoading(true);
+    
+    try {
+      // Extract top headlines to process
+      const headlines = countryNews.slice(0, 10).map((n: any) => n.title);
+      
+      const res = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ country: selectedCountry.properties.ADMIN, headlines })
+      });
+      
+      const data = await res.json();
+      setSummary(data.text);
+    } catch {
+      setSummary("Error connecting to intelligence node. Signal Degraded.");
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const closePanel = () => {
+    setSelectedCountry(null);
     if (globeRef.current && mounted) {
       globeRef.current.controls().autoRotate = true;
-      globeRef.current.controls().autoRotateSpeed = 0.5;
-      globeRef.current.controls().enableZoom = true;
     }
-  }, [mounted]);
-
-  // Use useMemo to avoid re-rendering heavy parts just because state changes
-  const points = useMemo(() => news, [news]);
+  };
 
   if (!mounted) return null;
 
   return (
-    <div className="w-full h-full relative group">
-      {/* HUD Overlay */}
-      <div className="absolute top-4 left-4 z-10 pointer-events-none fade-in">
-        <h2 className="text-xl font-mono text-white tracking-widest uppercase">Global Surveillance</h2>
-        <p className="text-xs font-mono text-green-400 mt-1 max-w-sm">
+    <div className="w-full h-full relative group font-sans">
+      
+      {/* HUD Info Overlay */}
+      <div className="absolute top-4 left-4 z-10 pointer-events-none transition-opacity duration-500">
+        <h2 className="text-xl font-mono text-white tracking-widest uppercase flex items-center gap-2 drop-shadow-lg">
+          <Activity className="w-5 h-5 text-accent" />
+          Global Surveillance
+        </h2>
+        <p className="text-xs font-mono text-green-400 mt-1 max-w-sm drop-shadow-md bg-black/40 p-2 rounded backdrop-blur-sm border border-green-500/20">
           Tracking {points.length} active incidents dynamically mapped. 
-          Use mouse to rotate and zoom.
+          <br/><span className="text-white/70">Hover over territories for names, and click to extract localized regional intelligence.</span>
         </p>
+      </div>
+
+      {/* Slide-out Regional Intelligence Side Panel */}
+      <div 
+        className={`absolute top-0 right-0 w-full md:w-[450px] h-[calc(100vh-104px)] bg-black/85 backdrop-blur-xl border-l border-bone/10 z-20 flex flex-col transform transition-transform duration-500 ease-out shadow-2xl ${
+          selectedCountry ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        {selectedCountry && (
+          <>
+            {/* Panel Header */}
+            <div className="p-6 border-b border-bone/10 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-4">
+                <span className="text-4xl drop-shadow-lg">{getFlagEmoji(selectedCountry.properties.ISO_A2)}</span>
+                <div>
+                  <h3 className="text-xl font-bold tracking-wider text-bone uppercase line-clamp-1">
+                    {selectedCountry.properties.ADMIN}
+                  </h3>
+                  <p className="text-[10px] font-mono text-accent uppercase tracking-widest mt-1">
+                    Node: {selectedCountry.properties.ISO_A2} • Focus: Region
+                  </p>
+                </div>
+              </div>
+              <button onClick={closePanel} className="p-2 bg-bone/5 hover:bg-accent/20 rounded-full text-bone/60 hover:text-accent transition-all">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Panel Content (Scrollable) */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
+              
+              {/* AI Summarize Block */}
+              {countryNews.length > 0 && (
+                <div className="bg-gradient-to-br from-accent/10 to-transparent p-5 rounded-lg border border-accent/20 shadow-inner relative overflow-hidden">
+                  {/* Decorative glowing orb in corner */}
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-accent/20 blur-3xl rounded-full" />
+                  
+                  <div className="relative z-10">
+                    <p className="text-xs text-bone/70 mb-4 font-mono">Execute AI synthesis on all collected regional raw data.</p>
+                    
+                    {!summary ? (
+                      <button 
+                        onClick={handleSummarize}
+                        disabled={summaryLoading}
+                        className="w-full py-3 px-4 bg-accent hover:bg-accent/80 text-black font-bold uppercase tracking-[0.2em] text-xs rounded transition-all flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(255,51,102,0.3)] hover:shadow-[0_0_25px_rgba(255,51,102,0.6)] disabled:bg-bone/20 disabled:text-bone/40 disabled:shadow-none"
+                      >
+                        {summaryLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        {summaryLoading ? "ANALYZING REPORTS..." : "Generate AI Summary"}
+                      </button>
+                    ) : (
+                      <div className="pt-2">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Sparkles className="w-4 h-4 text-accent" />
+                          <span className="text-[10px] font-mono text-accent uppercase tracking-widest">Executive Briefing</span>
+                        </div>
+                        <p className="text-sm text-bone/90 leading-relaxed font-serif bg-black/30 p-4 rounded border border-bone/5 shadow-inner">
+                          {summary}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* News Feed state */}
+              {newsLoading ? (
+                <div className="flex flex-col items-center justify-center py-20 text-bone/60">
+                  <Loader2 className="w-8 h-8 animate-spin mb-4 text-accent" />
+                  <p className="font-mono text-[10px] tracking-[0.3em] uppercase">INTERCEPTING SIGNALS...</p>
+                </div>
+              ) : countryNews.length === 0 ? (
+                <div className="text-center py-12 bg-bone/[0.02] rounded border border-bone/10">
+                  <Search className="w-8 h-8 mx-auto mb-3 text-bone/30" />
+                  <p className="text-sm text-bone/50 tracking-wide">No recent classified incidents detected in this sector.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                    <h4 className="text-[10px] font-mono tracking-widest text-bone/50 uppercase">Raw Intercepts ({countryNews.length})</h4>
+                  </div>
+                  
+                  {countryNews.map((article: any, idx: number) => (
+                    <a key={idx} href={article.link || article.url} target="_blank" rel="noopener noreferrer" className="block group">
+                      <div className="p-4 rounded border border-bone/10 bg-black/40 hover:border-accent/40 hover:bg-accent/5 transition-all shadow-sm">
+                        <h5 className="text-sm font-semibold text-bone group-hover:text-accent mb-2 line-clamp-3 leading-snug">{article.title}</h5>
+                        <div className="flex justify-between items-center mt-3 pt-3 border-t border-bone/10">
+                          <span className="text-[9px] uppercase font-bold text-accent px-2 py-0.5 rounded bg-accent/10">{article.source || "Intel Node"}</span>
+                          <span className="text-[9px] text-bone/40 font-mono">
+                            {new Date(article.time || article.timestamp).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       <Globe
@@ -74,34 +262,44 @@ export default function InteractiveGlobe({ news }: { news: NewsItem[] }) {
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
         backgroundImageUrl="//unpkg.com/three-globe/example/img/night-sky.png"
         
-        // Data points (red glowing dots)
+        // Polygons (Countries)
+        polygonsData={countriesData}
+        polygonAltitude={d => d === hoverD ? 0.04 : 0.01}
+        // Red glowing highlight when hovered, almost invisible lines when not
+        polygonCapColor={d => d === hoverD ? 'rgba(255, 51, 102, 0.4)' : 'rgba(255, 255, 255, 0.01)'}
+        polygonSideColor={() => 'rgba(0, 0, 0, 0.1)'}
+        polygonStrokeColor={() => 'rgba(255, 255, 255, 0.08)'}
+        onPolygonHover={setHoverD}
+        onPolygonClick={handlePolygonClick}
+        
+        // HTML Tooltip for Countries
+        polygonLabel={(d: any) => `
+          <div style="background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); border: 1px solid rgba(255,51,102,0.4); border-radius: 6px; padding: 8px 14px; color: white; display: flex; flex-direction: column; align-items: flex-start; box-shadow: 0 4px 20px rgba(0,0,0,0.5);">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span style="font-size: 20px;">${getFlagEmoji(d.properties.ISO_A2)}</span>
+              <strong style="text-transform: uppercase; letter-spacing: 1px; font-size: 14px;">${d.properties.ADMIN}</strong>
+            </div>
+            <div style="font-size: 9px; color: #ff3366; margin-top: 6px; letter-spacing: 2px; font-family: monospace;">[ CLICK TO EXTRACT INTEL ]</div>
+          </div>
+        `}
+        
+        // Data points (Global breaking news nodes)
         pointsData={points}
         pointLat="lat"
         pointLng="lng"
         pointColor={() => "#ff3366"}
         pointAltitude={0.05}
-        pointRadius={0.5}
+        pointRadius={0.3}
         pointsMerge={false}
         
-        // Hover labels
-        labelsData={points}
-        labelLat="lat"
-        labelLng="lng"
-        labelText="title"
-        labelSize={1.2}
-        labelDotRadius={1}
-        labelColor={() => "white"}
-        labelResolution={2}
-        labelAltitude={0.1}
-        
-        // Rings for aesthetic pulse effect
+        // Rings for aesthetic pulse effect around major news nodes
         ringsData={points}
         ringLat="lat"
         ringLng="lng"
-        ringColor={() => "#ff3366"}
-        ringMaxRadius={5}
-        ringPropagationSpeed={3}
-        ringRepeatPeriod={1500}
+        ringColor={() => "rgba(255, 51, 102, 0.8)"}
+        ringMaxRadius={4}
+        ringPropagationSpeed={2}
+        ringRepeatPeriod={2000}
       />
     </div>
   );
